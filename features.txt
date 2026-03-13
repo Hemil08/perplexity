@@ -1,0 +1,16 @@
+-> Authentication System
+    - Chat with AI
+    - Chat history
+    - Message Storage
+    - Ai with Internet research feature
+
+=> Data Modeling
+
+-> User
+    - _id
+    - username
+    - email
+    - password
+    - verified [default:false]
+    - createAt
+    - updatedAt
