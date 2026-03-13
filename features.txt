@@ -14,3 +14,11 @@
     - verified [default:false]
     - createAt
     - updatedAt 
+
+
+-> Chat 
+    - _id
+    - user (reference: User)
+    - title 
+    - createAt
+    -updatedAt
