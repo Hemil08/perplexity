@@ -21,4 +21,10 @@
     - user (reference: User)
     - title 
     - createAt
-    -updatedAt
+    - updatedAt
+
+-> Message
+    - _id
+    - chat (reference: Chat)
+    - content
+    - role : [user,ai]
