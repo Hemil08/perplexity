@@ -13,4 +13,4 @@
     - password
     - verified [default:false]
     - createAt
-    - updatedAt
+    - updatedAt 
