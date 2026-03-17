@@ -1,9 +1,14 @@
 import "dotenv/config"
 import app from "./src/app.js"
+import http from "http"
 import connectDB from "./src/config/database.js"
+import { initSocket } from "../Frontend/src/sockets/server.socket.js"
 
 const PORT = process.env.PORT || 3000
 
+const httpServer = http.createServer(app)
+
+initSocket(httpServer)
 
 connectDB()
     .catch((err)=>{
@@ -11,6 +16,6 @@ connectDB()
         process.exit(1)
     })
 
-app.listen(3000,() => {
+httpServer.listen(3000,() => {
     console.log(`Server runnig on port 3000`)
 })
