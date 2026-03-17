@@ -168,5 +168,6 @@ export async function getMe(req,res){
     res.status(200).json({
         message: "User details fetched successfully",
         success: true,
+        user
     })
 }
