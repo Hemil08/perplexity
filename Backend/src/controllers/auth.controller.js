@@ -105,7 +105,7 @@ export async function login(req,res){
     const user = await userModel.findOne({ email })
 
     if(!user){
-        return res.status(400),json({
+        return res.status(400).json({
             message: "Invalid email or password",
             success: false,
             err: "User not found"

@@ -17,6 +17,7 @@ export function initSocket(httpServer){
     })
 }
 
+
 export function getId(){
     if(!io){
         throw new Error("Socket.io not initialized")

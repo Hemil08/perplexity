@@ -28,3 +28,8 @@
     - chat (reference: Chat)
     - content
     - role : [user,ai]
+
+-> i have to implement resend-email = jaha par user kisi karan ki wajah se email receive nahi huva honga to resent button 
+click kar ke email resend kar shake. 
+
+-> agar user already apni email ko verify kar chuka huva ho to usko dusra page dikhna chahiye agar second time kare to 
