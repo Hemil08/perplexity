@@ -22,3 +22,12 @@ export async function getMe(){
 
     return response.data
 }
+
+export async function verifyEmail(token){
+
+    const response = await api.get("api/auth/verify-email", {
+        params: { token }
+    })
+
+    return response.data
+}

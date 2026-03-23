@@ -1,5 +1,5 @@
 import { useDispatch } from "react-redux";
-import { register,login, getMe } from "../service/auth.api";
+import { register,login, getMe, verifyEmail } from "../service/auth.api.js";
 import { setUser, setLoading, setError } from "../auth.slice";
 
 export function useAuth(){
@@ -41,9 +41,23 @@ export function useAuth(){
         }
     }
 
+    async function handleEmailVerify(token){
+        try{
+            dispatch(setLoading(true))
+            const data = await verifyEmail(token)
+            return data
+        } catch(err){
+            dispatch(setError(err.response?.data?.message) || 'Failed to verify Email')
+            throw err
+        } finally{
+            dispatch(setLoading(false))
+        }
+    }
+    
     return {
         handleGetMe,
         handleLogin,
-        handleRegister
+        handleRegister,
+        handleEmailVerify
     }
 }

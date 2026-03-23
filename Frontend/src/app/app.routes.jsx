@@ -4,6 +4,7 @@ import Login from "../features/auth/pages/Login";
 import Dashboard from "../features/chat/pages/Dashboard";
 import Protected from "../features/auth/components/protected";
 import { Navigate } from "react-router";
+import EmailVerification from "../features/auth/pages/EmailVerification";
 
 export const router = createBrowserRouter([
     {
@@ -23,5 +24,11 @@ export const router = createBrowserRouter([
     {
         path: "/dashboard",
         element: <Navigate to="/" replace /> 
+    },
+    {
+        path: "/verify-email",
+        element: 
+            <EmailVerification/>
+    
     }
 ])

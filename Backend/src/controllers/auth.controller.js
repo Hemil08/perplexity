@@ -36,12 +36,12 @@ export async function register(req, res){
         html: `<p>Hi ${username},</p>
             <p>Thank you for registering at Perplexity ,We're excited to have you on board</p>
             <p>Please verify your email address by clicking the link below:</p>
-            <a href="http://localhost:3000/api/auth/verify-email?token=${emailverificationToken}">Verify Email</a>
+            <a href="http://localhost:5173/verify-email?token=${emailverificationToken}">Verify Email</a>
             <p>Best Regards,<br>The Perplexity team</p>`
     })
 
     res.status(201).json({
-        message: "User registered successfully",
+        message: "User registered successfully, please check your mail",
         success: true,
         user:{
             id:user._id,
@@ -68,22 +68,32 @@ export async function verifyEmail(req,res){
         if(!user){
             return res.status(400).json({
                 message:"Invalid token",
-                success: false,
+                success: false, 
                 err: "User not found"
             })
         }
 
-        user.verified = true
+        if (user.verified === true){
 
-        await user.save()
+            return res.status(200).json({
+                message: "Email has been already verified.",
+                success: true,
+            })
+            // const html = `
+            //         <h1>Email has been already verified.</h1>
+            //         <p>Your email has been already verified. Please log in to your account.</p>
+            //         <a href="http://localhost:3000/api/auth/login">Go to Login</a>
+            //     `
+        } else{
+            user.verified = true
+            await user.save()
 
-        const html = `
-            <h1>Email Verified Successfully</h1>
-            <p> Your email has been verified. You can now log in to your account. </p>
-            <a href="http://localhost:3000/api/auth/login">Go to Login</a>
-        `
+            return res.status(200).json({
+                message: "Email has been verified Successfully!",
+                success:true,
+            })
+        }
 
-        return res.send(html)
     } catch(err){
         return res.status(400).json({
             message: "Invalid or expired token",
