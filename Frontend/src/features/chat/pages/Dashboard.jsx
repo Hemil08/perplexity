@@ -1,14 +1,16 @@
 import React, { useEffect } from "react";
+import ReactMarkdown from 'react-markdown'
 import { useSelector } from "react-redux";
-import { useChat } from "../hooks/useChat"  
-import messageModel from "../../../../../Backend/src/models/message.model";
+import { useChat } from "../hooks/useChat"
+import remarkGfm from 'remark-gfm'  
+import { useState } from "react";
+
 
 const Dashboard = () =>{
 
     const chat = useChat()
     
     const [chatInput, setChatInput] = useState('')
-    const [userMessage, setUserMessage] = useState('')
 
     const chats = useSelector((state) => state.chat.chats)
     const currentChatId = useSelector((state) => state.chat.currentChatId)
@@ -16,6 +18,7 @@ const Dashboard = () =>{
 
     useEffect   (() => {
         chat.initializeSocketConnection()
+        chat.handleGetChats()
     },[])
 
     const handleSubmitMessage = (event) => {
@@ -29,6 +32,10 @@ const Dashboard = () =>{
 
         chat.handleSendMessage({ message: trimmedMessage, chatId: currentChatId })
         setChatInput('')
+    }
+
+    const openChat = (chatId) => {
+        chat.handleOpenChat(chatId, chats)
     }
 
 
