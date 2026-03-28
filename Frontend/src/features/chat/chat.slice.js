@@ -29,7 +29,7 @@ const chatSlice = createSlice({
             const { chatId, messages } = action.payload
             state.chats[chatId].messages.push(...messages) 
         },
-
+        
         setChats: (state, action) => {
             state.chats = action.payload
         },

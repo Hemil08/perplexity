@@ -21,20 +21,10 @@ export  async function sendMessage(req, res){
         role: "user"
     })
 
-    const messages = await messageModel.find({ chat: chatId || chat._id })
-
-    const result = await generateResponse(messages) 
-
-    const aiMessage = await messageModel.create({
-        chat: chatId || chat._id,
-        content: result,
-        role: "ai"
-    })
-
     res.status(201).json({
         title,
         chat,
-        aiMessage
+        userMessage
     })
 }
 

@@ -2,10 +2,13 @@ import { initializeSocketConnection } from "../service/chat.socket.js";
 import { sendMessage, getChats, deleteChat, getMessages } from "../service/chat.api.js";
 import { setChats, setCurrentChatId, setError, setLoading, addMessages, addNewMessage, createNewChat} from "../chat.slice.js";
 import { useDispatch } from "react-redux";
+import { io } from "socket.io-client";
 
 export const useChat = () => {
 
     const dispatch = useDispatch()
+
+    const socket = io("http://localhost:5173")
 
     async function handleSendMessage( {message,chatId} ){
         dispatch(setLoading(true))
@@ -27,16 +30,45 @@ export const useChat = () => {
             role: "user",
         }))
 
+        const aiMessageId = crypto.randomUUID()
+
         dispatch(addNewMessage({
             chatId:chatId || chat._id,
-            content: aiMessage.content,
+            messageId: aiMessageId,
+            content: "",
             role: aiMessage.role,
         }))
 
 
         dispatch(setCurrentChatId(chat._id))
 
-        dispatch(setLoading(false))
+        socket.emit("chat",[
+            { role: "user", content:message }
+        ])
+
+        socket.off("token")
+        socket.on("token", (chunk) => {
+            dispatch(updateMessage({
+                chatId: chatId || chat._id,
+                messageId: aiMessageId,
+                content: chunk,
+            }))
+        })
+        
+        socket.off("tool_call")
+        socket.on(tool_call, (data) => {
+            console.log("Tools:",data.tools)
+        })
+
+        socket.off("done")
+        socket.on("done", () => {
+            dispatch(setLoading(false))
+        })
+
+        socket.off("error")
+        socket.on("error", ()=>{
+            dispatch(setLoading(false))
+        })
     }
 
     async function handleGetChats(){

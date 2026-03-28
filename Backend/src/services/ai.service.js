@@ -34,76 +34,61 @@ const agent = createAgent({
   tools: [searchInternetTool],
 });
 
-export async function generateResponse(messages) {
-    const encoder = new TextEncoder();
+export async function generateResponse(messages, handlers) {
+    const { onToken, onToolCall, onEnd, onError } = handlers;
 
-    const stream = new ReadableStream({
-        async start(controller) {
-            const response = await agent.stream(
-                {
-                messages: [
-                    new SystemMessage(`
+    try {
+    const response = await agent.stream(
+        {
+        messages: [
+            new SystemMessage(`
                             You are a helpful and pracise assistant for answering questions.
                             If you don't know the answer, say you don't know.
                             If the question requires up-to-date information, use the "searchInternet" tool to get the latest 
                             information from the internet and then answer based on the search results.
                             `),
-                    ...messages.map((msg) => {
-                    if (msg.role == "user") {
-                        return new HumanMessage(msg.content);
-                    } else if (msg.role == "ai") {
-                        return new AIMessage(msg.content);
-                    }
-                    }),
-                ],
-                },
-                { streamMode: "values" },
-            );
-
-            try{
-                for await (const chunk of response) {
-                    const latestMessage = chunk.messages?.at(-1);
-                    if (!latestMessage) continue;
-
-                    // Stream text tokens
-                    if (latestMessage.content) {
-                        let text = "";
-
-                        if (typeof latestMessage.content === "string") {
-                            text = latestMessage.content;
-                        } else if (Array.isArray(latestMessage.content)) {
-                            text = latestMessage.content
-                                .map(c => c?.text || "")
-                                .join("");
-                        }
-
-                        controller.enqueue(encoder.encode(text));
-                    }
-
-                    // Optional: stream tool call events
-                    if (latestMessage.tool_calls) {
-                        const tools = latestMessage.tool_calls.map(tc => tc.name);
-                        controller.enqueue(
-                            encoder.encode(`\n[TOOL_CALL]: ${tools.join(", ")}\n`)
-                        );
-                    }
-                }
-            } catch(err){
-                controller.enqueue(
-                    encoder.encode("\n[ERROR]: Streaming failed\n")
-                )
-            } finally{
-                controller.close()
+            ...messages.map((msg) => {
+            if (msg.role == "user") {
+                return new HumanMessage(msg.content);
+            } else if (msg.role == "ai") {
+                return new AIMessage(msg.content);
             }
-        }
-    });
+            }),
+        ],
+        },
+        { streamMode: "values" },
+    );
 
-    return new Response(stream,{
-        headers:{
-            "Content-type": "text/plain; charset=utf-8",
-            "Transfer-Encoding": "chunked"
+    for await (const chunk of response) {
+        const latestMessage = chunk.messages?.at(-1);
+        if (!latestMessage) continue;
+
+        // Stream text tokens
+        if (latestMessage.content) {
+        let text = "";
+
+        if (typeof latestMessage.content === "string") {
+            text = latestMessage.content;
+        } else if (Array.isArray(latestMessage.content)) {
+            text = latestMessage.content.map((c) => c?.text || "").join("");
         }
-    })
+
+        onToken?.(text);
+        }
+
+        // Optional: stream tool call events
+        if (latestMessage.tool_calls) {
+        onToolCall?.(latestMessage.tool_calls.map((tc) => tc.name));
+        }
+    }
+
+    onEnd?.()
+
+    } catch (err) {
+        onError?.(err)
+    }
+
+    return response
 }
 
 export async function generateChatTitle(message) {
