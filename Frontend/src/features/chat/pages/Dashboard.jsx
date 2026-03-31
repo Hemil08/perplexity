@@ -4,6 +4,7 @@ import { useSelector } from "react-redux";
 import { useChat } from "../hooks/useChat"
 import remarkGfm from 'remark-gfm'  
 import { useState } from "react";
+import { useRef } from "react";
 
 
 const Dashboard = () =>{
@@ -11,15 +12,76 @@ const Dashboard = () =>{
     const chat = useChat()
     
     const [chatInput, setChatInput] = useState('')
+    const [isAITyping, setIsAITyping] = useState(false)
+    const messageEndRef = useRef(null)
 
     const chats = useSelector((state) => state.chat.chats)
     const currentChatId = useSelector((state) => state.chat.currentChatId)
 
 
-    useEffect   (() => {
-        chat.initializeSocketConnection()
+    useEffect (() => {
         chat.handleGetChats()
     },[])
+
+    useEffect(()=>{
+        scrollToBottom()
+    },[chats, currentChatId])
+
+    useEffect(() => {
+    const socket = chat.socketRef.current;
+    if (!socket) return;
+
+    const handleStart = ({ chatId }) => {
+        if (chatId === currentChatId){
+            console.log("ai start")
+            setIsAITyping(true)
+        }
+    }
+
+    const handleDone = ({ chatId }) => {
+        console.log("Done Received")
+        if(chatId === currentChatId){
+            setIsAITyping(false)
+        }
+    }
+
+    const handleError = ({ chatId }) => {
+        if (chatId === currentChatId){
+            setIsAITyping(false)
+        }
+    }
+
+    // When AI starts streaming a message
+    socket.on("ai_message_created", handleStart);
+
+    // When AI finishes streaming
+    socket.on("done", handleDone);
+
+    // On any error, stop typing indicator
+    socket.on("error", handleError);
+
+    return () => {
+        socket.off("ai_message_created");
+        socket.off("done");
+        socket.off("error");
+    };
+    }, []);
+
+    const scrollToBottom = () => {
+        messageEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    }
+
+    // useEffect(()=>{
+    //     if (!isAITyping) return 
+
+    //     const timer = setTimeout(()=>{
+    //         setIsAITyping(false)
+    //     },10000)
+
+    //     return () => clearTimeout(timer)
+
+    // },[isAITyping])
+    
 
     const handleSubmitMessage = (event) => {
         event.preventDefault()
@@ -31,13 +93,13 @@ const Dashboard = () =>{
         }
 
         chat.handleSendMessage({ message: trimmedMessage, chatId: currentChatId })
+
         setChatInput('')
     }
 
     const openChat = (chatId) => {
         chat.handleOpenChat(chatId, chats)
     }
-
 
 
     return(
@@ -65,7 +127,7 @@ const Dashboard = () =>{
                 <div className='messages flex-1 space-y-3 overflow-y-auto pr-1 pb-30'>
                     {chats[ currentChatId ]?.messages.map((message) => (
                     <div
-                        key={message.id}
+                        key={message.messageId || message.id || crypto.randomUUID()}
                         className={`max-w-[82%] w-fit rounded-2xl px-4 py-3 text-sm md:text-base ${message.role === 'user'
                             ? 'ml-auto rounded-br-none bg-white/12 text-white'
                             : 'mr-auto border-none text-white/90'
@@ -89,6 +151,13 @@ const Dashboard = () =>{
                         )}
                     </div>
                     ))}
+
+                    {isAITyping && (
+                            <div className='mr-auto rounded-2xl px-4 py-3 text-sm md:text-base border-none text-white/50'>
+                                AI is typing...
+                            </div>
+                    )}
+                    <div ref={messageEndRef}></div>
                 </div>
 
                 <footer className='rounded-3xl w-full absolute bottom-2 border border-white/60 bg-[#080b12] p-4 md:p-5'>

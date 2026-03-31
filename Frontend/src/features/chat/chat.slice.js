@@ -21,8 +21,20 @@ const chatSlice = createSlice({
         },
 
         addNewMessage: (state,action) => {
-            const { chatId, content, role } = action.payload
-            state.chats[ chatId ].messages.push({ content, role })
+            const { chatId, messageId,content, role } = action.payload
+            state.chats[ chatId ].messages.push({ messageId,content, role })
+        },
+
+        updateMessage: (state,action) => {
+            const {chatId, messageId, token} = action.payload
+
+            const messages = state.chats[chatId]?.messages
+            if(!messages) return 
+
+            const msg = messages.find(m => m.messageId === messageId)
+            if(msg){
+                msg.content += token
+            }
         },
 
         addMessages: (state, action) => {
@@ -39,12 +51,12 @@ const chatSlice = createSlice({
         setLoading: (state, action) => {
             state.isLoading = action.payload
         },
-        setError: (State, action) => {
+        setError: (state, action) => {
             state.error = action.payload
         }
     }
 })
 
 
-export const { createNewChat, setChats, setCurrentChatId, setLoading, addMessages, addNewMessage, setError   } = chatSlice.actions
+export const { createNewChat,setChats, setCurrentChatId, setLoading, addMessages, updateMessage, addNewMessage, setError   } = chatSlice.actions
 export default chatSlice.reducer

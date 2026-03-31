@@ -1,21 +1,67 @@
 import { initializeSocketConnection } from "../service/chat.socket.js";
 import { sendMessage, getChats, deleteChat, getMessages } from "../service/chat.api.js";
-import { setChats, setCurrentChatId, setError, setLoading, addMessages, addNewMessage, createNewChat} from "../chat.slice.js";
-import { useDispatch } from "react-redux";
+import { setChats, setCurrentChatId, setError, setLoading, addMessages, updateMessage,addNewMessage, createNewChat} from "../chat.slice.js";
+import { useDispatch, useSelector } from "react-redux";
 import { io } from "socket.io-client";
+import { useEffect } from "react";
+import { useRef } from "react";
 
 export const useChat = () => {
 
     const dispatch = useDispatch()
+    const socketRef = useRef(null)
+    const chats = useSelector(state => state.chat.chats)
 
-    const socket = io("http://localhost:5173")
+    useEffect(()=>{
+
+        const socket = initializeSocketConnection();
+        socketRef.current = socket;
+
+
+        socket.on("ai_message_created",({ chatId, messageId, content }) =>{
+            dispatch(addNewMessage({
+                chatId,
+                messageId,
+                content: content || "",
+                role:"ai"
+            }))
+        })
+
+        socket.on("token",({ chatId, token, messageId }) =>{
+            dispatch(updateMessage({
+                chatId,
+                messageId,
+                token
+            }))
+        })
+
+        socket.on("done",({ chatId, messageId }) => {
+            dispatch(setLoading(false))
+
+        })
+
+        socket.on("error",(err)=> {
+            dispatch(setLoading(false))
+            dispatch(setError(err))
+        })
+
+        return () => {
+            socket.off("ai_message_created");
+            socket.off("token");
+            socket.off("done");
+            socket.off("error");
+        }
+    },[])
+
+
 
     async function handleSendMessage( {message,chatId} ){
         dispatch(setLoading(true))
 
-        const data = await sendMessage({ message, chatId })
+        try{
+            const data = await sendMessage({ message, chatId })
 
-        const {chat, aiMessage} = data
+        const {chat} = data
 
         if(!chatId)
             dispatch(createNewChat({
@@ -26,49 +72,25 @@ export const useChat = () => {
 
         dispatch(addNewMessage({
             chatId:chatId || chat._id,
+            messageId: crypto.randomUUID(),
             content: message,
             role: "user",
         }))
 
-        const aiMessageId = crypto.randomUUID()
+        dispatch(setCurrentChatId(chatId || chat._id))
 
-        dispatch(addNewMessage({
-            chatId:chatId || chat._id,
-            messageId: aiMessageId,
-            content: "",
-            role: aiMessage.role,
-        }))
+        const socket = socketRef.current
 
-
-        dispatch(setCurrentChatId(chat._id))
-
-        socket.emit("chat",[
-            { role: "user", content:message }
-        ])
-
-        socket.off("token")
-        socket.on("token", (chunk) => {
-            dispatch(updateMessage({
-                chatId: chatId || chat._id,
-                messageId: aiMessageId,
-                content: chunk,
-            }))
+        socket.emit("chat",{
+            chatId: chatId || chat._id,
+            messages:[
+                {role: "user", content: message }
+            ]
         })
-        
-        socket.off("tool_call")
-        socket.on(tool_call, (data) => {
-            console.log("Tools:",data.tools)
-        })
-
-        socket.off("done")
-        socket.on("done", () => {
+        } catch(error){
             dispatch(setLoading(false))
-        })
-
-        socket.off("error")
-        socket.on("error", ()=>{
-            dispatch(setLoading(false))
-        })
+            dispatch(setError("Failed to send message"))
+        }        
     }
 
     async function handleGetChats(){
@@ -99,6 +121,7 @@ export const useChat = () => {
         
 
             const formattedMessages = messages.map(msg => ({
+                messageId: msg._id,
                 content: msg.content,
                 role: msg.role,
             }))
@@ -115,6 +138,7 @@ export const useChat = () => {
         initializeSocketConnection,
         handleSendMessage,
         handleGetChats,
-        handleOpenChat
+        handleOpenChat,
+        socketRef
     }
 }

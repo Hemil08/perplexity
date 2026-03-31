@@ -37,8 +37,10 @@ const agent = createAgent({
 export async function generateResponse(messages, handlers) {
     const { onToken, onToolCall, onEnd, onError } = handlers;
 
+    let response = null
+
     try {
-    const response = await agent.stream(
+    response = await agent.stream(
         {
         messages: [
             new SystemMessage(`

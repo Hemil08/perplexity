@@ -1,5 +1,6 @@
 import {Server} from "socket.io"
 import { generateResponse } from "../services/ai.service.js"
+import messageModel from "../models/message.model.js"
 
 let io
 
@@ -18,25 +19,39 @@ export function initSocket(httpServer){
 
         socket.on("chat", async ({messages, chatId}) => {
 
+            let aiMessageDoc
+
             try{
                  // Create empty AI message in DB first
-                let aiMessageDoc = await messageModel.create({
+                aiMessageDoc = await messageModel.create({
                     chat: chatId,
-                    content: "",
+                    content: " ",
                     role: "ai"
-                });       
+                });      
+
+                socket.emit("ai_message_created", {
+                    chatId,
+                    messageId: aiMessageDoc._id,
+                });
+
+                let fullContext = ""
+
 
                 await generateResponse(messages, {
-                onToken : async (token) => {
-                    aiMessageDoc.content += token
-                    await aiMessageDoc.save()
-                    socket.emit("token",token)
+                onToken : (token) => {
+        
+                    fullContext += token
+                    socket.emit("token",{chatId, token, messageId:aiMessageDoc._id})
                 },
                 onToolCall: (tools) => {
                     socket.emit("tool_call",{ tools })
                 },
-                onEnd: () => {
-                    socket.emit("done")
+                onEnd: async () => {
+                   
+                    aiMessageDoc.content = fullContext
+                    await aiMessageDoc.save()
+
+                    socket.emit("done",{chatId, messageId:aiMessageDoc._id})
                 },
                 onError: () => {
                     socket.emit("error", "Streaming failed")
@@ -44,7 +59,7 @@ export function initSocket(httpServer){
                 })
             } catch(err){
                  console.error("Socket chat error:", err);
-                socket.emit("error", "Server error");
+                socket.emit("error",{ chatId, message: "Server error"});
             }
             
         })
