@@ -1,6 +1,7 @@
 import userModel from "../models/user.model.js"
 import jwt from "jsonwebtoken"
 import { sendEmail } from "../services/mail.service.js"
+import blacklistModel from "../models/blacklist.model.js"
 
 // @desc Register a new User
 // @route POST /api/auth/register
@@ -179,5 +180,24 @@ export async function getMe(req,res){
         message: "User details fetched successfully",
         success: true,
         user
+    })
+}
+
+// @desc logged out in user's details
+// @route GET /api/auth/logout
+// @access Private
+
+export async function logout(req,res){
+
+    const token = req.cookies.token
+
+    res.clearCookie("token")
+
+    await blacklistModel.create({
+        token
+    })
+
+    res.status(200).json({
+        message: "logout successfully"
     })
 }

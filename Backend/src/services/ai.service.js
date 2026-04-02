@@ -38,6 +38,7 @@ export async function generateResponse(messages, handlers) {
     const { onToken, onToolCall, onEnd, onError } = handlers;
 
     let response = null
+    let previousContent = "";
 
     try {
     response = await agent.stream(
@@ -75,7 +76,12 @@ export async function generateResponse(messages, handlers) {
             text = latestMessage.content.map((c) => c?.text || "").join("");
         }
 
-        onToken?.(text);
+        // Only emit new tokens (avoid sending accumulated content)
+        if (text.length > previousContent.length) {
+            const newToken = text.slice(previousContent.length);
+            previousContent = text;
+            onToken?.(newToken);
+        }
         }
 
         // Optional: stream tool call events

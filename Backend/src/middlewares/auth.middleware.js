@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken"
+import blacklistModel from "../models/blacklist.model.js";
 
 export function authUser(req,res,next){
 
@@ -9,6 +10,16 @@ export function authUser(req,res,next){
             message: "Unauthorized",
             success: false,
             err: "No token provided"
+        })
+    }
+
+    const isTokenBlackListed = blacklistModel.findOne({
+        token 
+    })
+
+    if(isTokenBlackListed){
+        return res.status(401).json({
+            message: "Invalid Token"
         })
     }
 
